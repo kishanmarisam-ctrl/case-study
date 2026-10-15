@@ -1,84 +1,469 @@
-<!-- language: HTML, file: integrated_lock_payload.html, target: Mobile/Desktop Browsers -->
-<!-- 
-  Execution Mechanics:
-  1. Timed History Flood: Pushes 500 state entries to trap the back button and 
-     intercept popstate events for an exact 7-second duration before auto-releasing.
-  2. Max-Gain Audio Overdrive: Streams continuous high-frequency square waves 
-     at a digital gain multiplier (5.0+) for maximum speaker volume and clipping.
-  3. Haptic Saturation: Fires continuous heavy vibration patterns synchronized 
-     with the active lock window.
--->
-
+```html
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>System Initializing...</title>
-</head>
-<body style="background:#000; color:#ff0033; text-align:center; padding-top:40vh; font-family:monospace;">
-    <button id="btn" style="padding:25px 40px; font-size:22px; background:#ff0033; color:#fff; border:none; font-weight:bold; border-radius:8px; cursor:pointer;">TAP TO UNLOCK</button>
-    <script>
-        document.getElementById('btn').addEventListener('click', function() {
-            document.body.innerHTML = "<h1 style='color:#ff0033; font-size:32px;'>SYSTEM OVERLOAD</h1><p style='color:#fff;'>7-second navigation lock engaged.</p>";
+    <meta charset="UTF-8">
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+    <meta name="theme-color" content="#000000">
+    <title>Verification Required</title>
 
-            // 1. Flood History Stack & Lock Navigation
-            for (let i = 0; i < 500; i++) {
-                history.pushState({id: i}, "", "#lock" + i);
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 20px;
+            background: #000;
+            color: #0f0;
+            font-family: "Courier New", monospace;
+            min-height: 100vh;
+            min-height: 100dvh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        button {
+            padding: 18px 28px;
+            font-family: inherit;
+            font-size: 18px;
+            font-weight: bold;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 8px;
+        }
+
+        #trigger {
+            background: #fff;
+            color: #000;
+        }
+
+        #stop {
+            background: #f00;
+            color: #fff;
+        }
+
+        button:focus-visible {
+            outline: 3px solid #0f0;
+            outline-offset: 4px;
+        }
+
+        #payload {
+            display: none;
+            width: 100%;
+            max-width: 650px;
+            overflow-wrap: anywhere;
+        }
+
+        .warning {
+            color: #f00;
+            font-weight: bold;
+            font-size: clamp(20px, 5vw, 28px);
+            animation: blink 0.7s infinite;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            border: 2px solid #0f0;
+            margin-top: 20px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            width: 0%;
+            background: #f00;
+            transition: width 0.1s linear;
+        }
+
+        #console-log {
+            margin-top: 20px;
+            font-size: 13px;
+            line-height: 1.6;
+            color: #0f0;
+            overflow-wrap: anywhere;
+        }
+
+        #status {
+            color: #aaa;
+            font-size: 12px;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .warning {
+                animation: none;
             }
+        }
+    </style>
+</head>
 
-            let locked = true;
-            setTimeout(() => {
-                locked = false;
-                document.body.innerHTML = "<h1 style='color:#0f0;'>LOCK RELEASED</h1><p style='color:#fff;'>Normal operation restored.</p>";
-            }, 7000); // 7-second auto-release window
+<body>
+    <button id="trigger">TAP TO VERIFY</button>
 
-            window.addEventListener('popstate', function(e) {
-                if (locked) {
-                    history.pushState({id: 'trap'}, "", "#trap");
-                    if ("vibrate" in navigator) {
-                        try { navigator.vibrate([1000, 50, 1000]); } catch(err) {}
-                    }
-                }
-            });
+    <main id="payload" aria-live="off">
+        <div class="warning">CRITICAL KERNEL FAILURE</div>
 
-            // 2. Maximum Amplitude Audio Overdrive
-            const ctx = new (window.AudioContext || window.webkitAudioContext)();
-            if (ctx.state === 'suspended') { ctx.resume(); }
+        <p>Memory corruption detected.</p>
+        <p>Executing simulated emergency thermal purge...</p>
+        <p>Simulated partition wipe: <span id="percent">0.00</span>%</p>
 
-            const audioInterval = setInterval(() => {
-                if (!locked) {
-                    clearInterval(audioInterval);
+        <div
+            class="progress-bar"
+            role="progressbar"
+            aria-label="Simulated wipe progress"
+            aria-valuemin="0"
+            aria-valuemax="100"
+            aria-valuenow="0"
+            id="progress"
+        >
+            <div class="progress-fill" id="fill"></div>
+        </div>
+
+        <div id="console-log"></div>
+
+        <p id="countdown">Simulation duration: 7 seconds</p>
+        <p id="status" role="status">Simulation ready.</p>
+
+        <button id="stop" type="button">
+            STOP ALARM & EXIT
+        </button>
+    </main>
+
+    <script>
+        "use strict";
+
+        const trigger = document.getElementById("trigger");
+        const stopButton = document.getElementById("stop");
+        const payload = document.getElementById("payload");
+        const percent = document.getElementById("percent");
+        const fill = document.getElementById("fill");
+        const progress = document.getElementById("progress");
+        const consoleLog = document.getElementById("console-log");
+        const countdown = document.getElementById("countdown");
+        const status = document.getElementById("status");
+
+        const DURATION = 7000;
+
+        const logs = [
+            "[SIMULATION] Memory integrity check failed",
+            "[SIMULATION] Storage scan started...",
+            "[SIMULATION] Thermal threshold exceeded",
+            "[SIMULATION] Recovery partition detected",
+            "[SIMULATION] Diagnostic sequence running...",
+            "[SIMULATION] System integrity check pending",
+            "[SIMULATION] Emergency recovery initialized",
+            "[SIMULATION] Hardware status check running"
+        ];
+
+        let active = false;
+        let startedAt = 0;
+        let audioContext = null;
+        let oscillator = null;
+        let gainNode = null;
+
+        let progressTimer = null;
+        let countdownTimer = null;
+        let finishTimer = null;
+        let vibrationTimer = null;
+
+        function addLog(message) {
+            const line = document.createElement("div");
+            line.textContent =
+                new Date().toLocaleTimeString() + " " + message;
+
+            consoleLog.prepend(line);
+
+            while (consoleLog.children.length > 10) {
+                consoleLog.lastElementChild.remove();
+            }
+        }
+
+        async function startContinuousAlarm() {
+            try {
+                const AudioContextClass =
+                    window.AudioContext ||
+                    window.webkitAudioContext;
+
+                if (!AudioContextClass) {
+                    status.textContent =
+                        "Audio is not supported by this browser.";
                     return;
                 }
+
+                audioContext = new AudioContextClass();
+
+                if (audioContext.state === "suspended") {
+                    await audioContext.resume();
+                }
+
+                if (!active) {
+                    await stopAudio();
+                    return;
+                }
+
+                oscillator = audioContext.createOscillator();
+                gainNode = audioContext.createGain();
+
+                // One continuous alarm oscillator, not repeated beeps.
+                oscillator.type = "sawtooth";
+                oscillator.frequency.setValueAtTime(
+                    950,
+                    audioContext.currentTime
+                );
+
+                // Controlled gain; does not alter device master volume.
+                gainNode.gain.setValueAtTime(
+                    0.5,
+                    audioContext.currentTime
+                );
+
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                oscillator.start();
+
+                status.textContent = "Continuous alarm active.";
+            } catch (error) {
+                console.error("Audio startup failed:", error);
+                status.textContent =
+                    "Audio could not start. Check browser settings.";
+            }
+        }
+
+        async function stopAudio() {
+            const oldOscillator = oscillator;
+            const oldGain = gainNode;
+            const oldContext = audioContext;
+
+            oscillator = null;
+            gainNode = null;
+            audioContext = null;
+
+            if (oldOscillator) {
                 try {
-                    const osc = ctx.createOscillator();
-                    const gain = ctx.createGain();
+                    oldOscillator.stop();
+                } catch (error) {
+                    // It may already have stopped.
+                }
 
-                    osc.type = 'square';
-                    osc.frequency.setValueAtTime(2800, ctx.currentTime);
-                    gain.gain.setValueAtTime(5.0, ctx.currentTime); // Max digital overload
+                try {
+                    oldOscillator.disconnect();
+                } catch (error) {}
+            }
 
-                    osc.connect(gain);
-                    gain.connect(ctx.destination);
+            if (oldGain) {
+                try {
+                    oldGain.disconnect();
+                } catch (error) {}
+            }
 
-                    osc.start();
-                    osc.stop(ctx.currentTime + 0.15);
-                } catch(e) {}
-            }, 100);
+            if (oldContext) {
+                try {
+                    await oldContext.close();
+                } catch (error) {
+                    console.error("Audio cleanup failed:", error);
+                }
+            }
+        }
 
-            // 3. Continuous Haptic Saturation Loop
-            if ("vibrate" in navigator) {
-                const vibInterval = setInterval(() => {
-                    if (!locked) {
-                        clearInterval(vibInterval);
-                        return;
+        function stopVibration() {
+            if (vibrationTimer !== null) {
+                clearInterval(vibrationTimer);
+                vibrationTimer = null;
+            }
+
+            if (typeof navigator.vibrate === "function") {
+                navigator.vibrate(0);
+            }
+        }
+
+        function clearTimers() {
+            if (progressTimer !== null) {
+                clearInterval(progressTimer);
+                progressTimer = null;
+            }
+
+            if (countdownTimer !== null) {
+                clearInterval(countdownTimer);
+                countdownTimer = null;
+            }
+
+            if (finishTimer !== null) {
+                clearTimeout(finishTimer);
+                finishTimer = null;
+            }
+
+            stopVibration();
+        }
+
+        async function endSimulation(reason = "completed") {
+            if (!active) return;
+
+            active = false;
+            clearTimers();
+            await stopAudio();
+
+            payload.querySelector(".warning").style.animation = "none";
+
+            if (reason === "stopped") {
+                addLog("[SIMULATION] Stopped by user.");
+                status.textContent = "Simulation stopped.";
+            } else {
+                percent.textContent = "100.00";
+                fill.style.width = "100%";
+                progress.setAttribute("aria-valuenow", "100");
+
+                addLog("[SIMULATION] Sequence completed.");
+                status.textContent = "Simulation completed.";
+            }
+
+            countdown.textContent = "Simulation ended.";
+            stopButton.classList.add("hidden");
+            trigger.classList.remove("hidden");
+            trigger.textContent = "RUN AGAIN";
+        }
+
+        async function startSimulation() {
+            if (active) return;
+
+            active = true;
+            startedAt = Date.now();
+
+            trigger.classList.add("hidden");
+            payload.style.display = "block";
+            stopButton.classList.remove("hidden");
+
+            percent.textContent = "0.00";
+            fill.style.width = "0%";
+            progress.setAttribute("aria-valuenow", "0");
+
+            consoleLog.replaceChildren();
+            countdown.textContent = "Simulation duration: 7 seconds";
+            status.textContent = "Starting simulation...";
+
+            addLog("[SIMULATION] Verification accepted.");
+
+            // Fullscreen is optional and may be rejected by the browser.
+            if (document.documentElement.requestFullscreen) {
+                try {
+                    await document.documentElement.requestFullscreen();
+                } catch (error) {
+                    // Continue without fullscreen.
+                }
+            }
+
+            await startContinuousAlarm();
+
+            if (!active) return;
+
+            // Simulated progress. No real device data is deleted.
+            progressTimer = setInterval(() => {
+                if (!active) return;
+
+                const elapsed = Date.now() - startedAt;
+                const value = Math.min(
+                    99.9,
+                    (elapsed / DURATION) * 99.9
+                );
+
+                percent.textContent = value.toFixed(2);
+                fill.style.width = value + "%";
+                progress.setAttribute(
+                    "aria-valuenow",
+                    value.toFixed(0)
+                );
+
+                if (Math.random() > 0.65) {
+                    const log = logs[
+                        Math.floor(Math.random() * logs.length)
+                    ];
+
+                    addLog(log);
+                }
+            }, 150);
+
+            // Countdown.
+            countdownTimer = setInterval(() => {
+                if (!active) return;
+
+                const remaining = Math.max(
+                    0,
+                    Math.ceil(
+                        (DURATION - (Date.now() - startedAt)) / 1000
+                    )
+                );
+
+                countdown.textContent =
+                    "Simulation ends in " + remaining + " seconds";
+            }, 200);
+
+            // Vibration is supported only on some devices and browsers.
+            if (typeof navigator.vibrate === "function") {
+                navigator.vibrate([250, 150, 250]);
+
+                vibrationTimer = setInterval(() => {
+                    if (active) {
+                        navigator.vibrate([250, 150, 250]);
                     }
-                    try {
-                        navigator.vibrate([1000, 50, 1000, 50, 1000]);
-                    } catch(e) {}
-                }, 1000);
+                }, 1200);
+            }
+
+            finishTimer = setTimeout(() => {
+                endSimulation("completed");
+            }, DURATION);
+        }
+
+        trigger.addEventListener("click", startSimulation);
+
+        stopButton.addEventListener("click", async () => {
+            await endSimulation("stopped");
+
+            if (document.fullscreenElement &&
+                document.exitFullscreen) {
+                try {
+                    await document.exitFullscreen();
+                } catch (error) {}
+            }
+        });
+
+        // Release audio and vibration if the user switches away.
+        document.addEventListener("visibilitychange", () => {
+            if (document.hidden && active) {
+                endSimulation("stopped");
+            }
+        });
+
+        // Never trap browser navigation.
+        window.addEventListener("pagehide", () => {
+            active = false;
+            clearTimers();
+
+            if (oscillator) {
+                try {
+                    oscillator.stop();
+                } catch (error) {}
+            }
+
+            if (audioContext) {
+                audioContext.close().catch(() => {});
             }
         });
     </script>
 </body>
 </html>
+```
