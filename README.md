@@ -1,4 +1,2 @@
 # case-study
-# hello
-# test
 
