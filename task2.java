@@ -7,7 +7,7 @@ class task2{
         String rollNo = "54";
         String department = "CSE";
         String address = "vizag";
-
+        String hello = "hello";
         System.out.println("lenght of studentName: " + studentName.length());
         System.out.println("length of rollNo: " + rollNo.length());
         System.out.println("length of department: " + department.length());
