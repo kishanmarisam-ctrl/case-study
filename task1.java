@@ -47,9 +47,35 @@ class task1{
 
         System.out.println("\nArraylist: " + list);
 
+        int[][] subjects = {
+                {80, 75, 90},
+                {65, 85, 70},
+                {95, 60, 82}
+                };
 
+        System.out.println("Marks in three subjects:");
 
+        for (int i = 0; i < subjects.length; i++) {
+            for (int j = 0; j < subjects[i].length; j++) {
+                System.out.print(subjects[i][j] + " ");
+                }
+            System.out.println();
+        }
 
+        int[][] jagged = {
+            {80, 75, 90},
+            {65, 85},
+            {95, 60, 82, 88}
+            };
+
+        System.out.println("Jagged array:");
+
+        for (int i = 0; i < jagged.length; i++) {
+            for (int j = 0; j < jagged[i].length; j++) {
+                System.out.print(jagged[i][j] + " ");
+            }
+        System.out.println();
+        }
     }
 }
 
